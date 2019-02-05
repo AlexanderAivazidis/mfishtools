@@ -1645,6 +1645,91 @@ fractionCorrectWithGenes <- function(orderedGenes,
   }
 }
 
+#' Number of cells correctly assigned to each cell type (cluster)
+#'
+#' This function takes as input a set of marker genes and returns 
+#' a matrix showing the true and false positive mapping rate for each cell type,
+#' as well as total number of true and false mappings and total number of cells of this type
+#'
+#' @param genes a list of input genes
+#' @param mapDat normalized data of the mapping (=reference) data set.
+#' @param medianDat median value for each leaf
+#' @param clustersF cluster calls for each cell
+#' @param verbose whether or not to show progress in the function
+#' @param plot if TRUE, plotCorrectByType is run
+#' @param ... parameters passed to plotCorrectPerType (if plot=TRUE)
+#' @param return if TRUE, the value is returned
+#'
+#' @return a matrix showing the true and false positive mapping rate for each cell type,
+#' as well as total number of true and false mappings and total number of cells of this type
+#'
+#' @export
+fractionCorrectByType <- function(genes,
+                                     mapDat,
+                                     medianDat,
+                                     clustersF,
+                                     verbose = FALSE,
+                                     plot = TRUE,
+                                     return = TRUE,
+                                     ...) {
+  corMapTmp <- suppressWarnings(corTreeMapping(
+    mapDat = mapDat,
+    medianDat = medianDat, genesToMap = genes
+  ))
+  corMapTmp[is.na(corMapTmp)] <- 0
+  topLeafTmp <- getTopMatch(corMapTmp)
+  mch = (topLeafTmp[, 1] == clustersF) 
+  
+  fracTrue = unlist(lapply(unique(clustersF), function(x) 100 * mean(mch[clustersF == x])))
+  fracTrue[is.na(fracTrue)] <- 0
+  names(fracTrue) = unique(clustersF)
+  
+  fracFalse = unlist(lapply(unique(clustersF), 
+                            function(x) 100*sum((topLeafTmp == x)[clustersF != x])/sum(clustersF != x)))
+  
+  totalTrue = unlist(lapply(unique(clustersF), function(x) sum(mch[clustersF == x])))
+  totalTrue[is.na(totalTrue)] <- 0
+  names(totalTrue) = unique(clustersF)
+  
+  totalFalse = unlist(lapply(unique(clustersF), 
+                            function(x) sum((topLeafTmp == x)[clustersF != x])))
+  
+  total = unlist(lapply(unique(clustersF), function(x) sum(clustersF == x)))
+  res = rbind(fracTrue, fracFalse, totalTrue, totalFalse, total)
+  
+  if (plot) {
+    plotCorrectByType(res, types, ...)
+  }
+  if (return) {
+    return(res)
+  }
+}
+
+#' Plot fraction correct for each cell type
+#'
+#' This function is a wrapper for plot designed for plotting the fraction correctly mapped for each
+#' cell type
+#'
+#' @param frac a numeric vector indicating the fraction of cells correctly mapped for each cell type
+#' @param types cell types, default is names(frac)
+#' @param ... additional parameters for plot.
+#'
+#' @export
+#' 
+plotCorrectByType <- function(res,
+                                 types = colnames(res),
+                                 xlab = "Cell type",
+                                 main = "Mapping performance for each cell type",
+                                 ylab = "Percent of cells correctly mapping",
+                                 ...) {
+  par(xpd = FALSE)
+  barplot(res[c(4,3,5),], col= c('red', 'green',' grey'), border="white", font.axis=2, beside=T,
+          las = 2, xlab="", ylab = "Number of cells", font.lab=2, names.arg = types, main = main)
+  par(xpd=TRUE)
+  legend(0,109, c("False Positives", "True Positives", "Number of Cells"), bty = 'n', fill = c('red', 'green', 'grey'),
+         horiz = TRUE, text.font = 2, text.width = 4, x.intersp = 0.25)
+}
+
 #' Correct mapping at different tree heights
 #'
 #' This function takes as input an ordered set of marker genes (e.g., from at iterative algorithm,
