@@ -105,9 +105,6 @@ getConfusionMatrix <- function(realCluster,
   confusion
 }
 
-
-
-
 #' Filter genes for spatial transcriptomics panel
 #'
 #' Returns a set of genes for inclusion in a spatial transcriptomics panel based on a series of 
@@ -203,7 +200,7 @@ filterPanelGenes <- function(summaryExpr,
   } else if(sum(offClusters)==1){
     maxExprOff <- summaryExpr[,offClusters]
   } else {
-    maxExprOff <- maxExprOn*Inf # Essentially this is saying there is no off constraint
+    maxExprOff <- -maxExprOn*Inf # Essentially this is saying there is no off constraint
   }
   
   ## Set the gene lengths, if needed
@@ -234,11 +231,6 @@ filterPanelGenes <- function(summaryExpr,
   runGenes    <- sort(union(runGenes,startingGenes))
   runGenes
 }
-
-
-
-
-
 
 #' Branch list
 #'
@@ -1478,7 +1470,6 @@ getNodeHeight <- function(tree) {
   names(nodeHeight) <- get_nodes_attr(tree, "label")
   return(nodeHeight)
 }
-
 
 #' Fraction of correct calls per node
 #'
