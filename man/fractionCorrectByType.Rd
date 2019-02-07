@@ -25,8 +25,8 @@ fractionCorrectByType(genes, mapDat, medianDat, clustersF,
 \item{...}{parameters passed to plotCorrectPerType (if plot=TRUE)}
 }
 \value{
-a matrix showing the true and false positive mapping rate for each cell type,
-as well as total number of true and false mappings and total number of cells of this type
+a matrix showing the true and false positive mapping rate for each cell type in row 1 and 2,
+as well as total number of true and false mappings in row 3 and 4 and the total number of cells of each type in row 5
 }
 \description{
 This function takes as input a set of marker genes and returns 

@@ -1651,8 +1651,8 @@ fractionCorrectWithGenes <- function(orderedGenes,
 #' @param ... parameters passed to plotCorrectPerType (if plot=TRUE)
 #' @param return if TRUE, the value is returned
 #'
-#' @return a matrix showing the true and false positive mapping rate for each cell type,
-#' as well as total number of true and false mappings and total number of cells of this type
+#' @return a matrix showing the true and false positive mapping rate for each cell type in row 1 and 2,
+#' as well as total number of true and false mappings in row 3 and 4 and the total number of cells of each type in row 5
 #'
 #' @export
 fractionCorrectByType <- function(genes,
@@ -1715,9 +1715,9 @@ plotCorrectByType <- function(res,
                                  ...) {
   par(xpd = FALSE)
   barplot(res[c(4,3,5),], col= c('red', 'green',' grey'), border="white", font.axis=2, beside=T,
-          las = 2, xlab="", ylab = "Number of cells", font.lab=2, names.arg = types, main = main)
+          las = 2, xlab="", ylab = "Number of cells", font.lab=2, names.arg = types, main = main, ...)
   par(xpd=TRUE)
-  legend(0,109, c("False Positives", "True Positives", "Number of Cells"), bty = 'n', fill = c('red', 'green', 'grey'),
+  legend(1,max(res[c(4,3,5),2:dim(res)[2]]), c("False Positives", "True Positives", "Number of Cells"), bty = 'n', fill = c('red', 'green', 'grey'),
          horiz = TRUE, text.font = 2, text.width = 4, x.intersp = 0.25)
 }
 
