@@ -1689,7 +1689,7 @@ fractionCorrectByType <- function(genes,
   res = rbind(fracTrue, fracFalse, totalTrue, totalFalse, total)
   
   if (plot) {
-    plotCorrectByType(res, types, ...)
+    plotCorrectByType(res, clustersF, ...)
   }
   if (return) {
     return(res)
