@@ -1717,7 +1717,7 @@ plotCorrectByType <- function(res,
   barplot(res[c(4,3,5),], col= c('red', 'green',' grey'), border="white", font.axis=2, beside=T,
           las = 2, xlab="", ylab = "Number of cells", font.lab=2, names.arg = types, main = main, ...)
   par(xpd=TRUE)
-  legend(1,max(res[c(4,3,5),2:dim(res)[2]]), c("False Positives", "True Positives", "Number of Cells"), bty = 'n', fill = c('red', 'green', 'grey'),
+  legend(1,max(res[c(4,3,5),2:dim(res)[2]]), yjust = 0, c("False Positives", "True Positives", "Number of Cells"), bty = 'n', fill = c('red', 'green', 'grey'),
          horiz = TRUE, text.font = 2, text.width = 4, x.intersp = 0.25)
 }
 
