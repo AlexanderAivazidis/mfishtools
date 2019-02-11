@@ -200,7 +200,7 @@ filterPanelGenes <- function(summaryExpr,
   } else if(sum(offClusters)==1){
     maxExprOff <- summaryExpr[,offClusters]
   } else {
-    maxExprOff <- -maxExprOn*Inf # Essentially this is saying there is no off constraint
+    maxExprOff <- -1*maxExprOn*Inf # Essentially this is saying there is no off constraint
   }
   
   ## Set the gene lengths, if needed
