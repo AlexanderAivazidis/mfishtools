@@ -5,7 +5,9 @@
 \title{Number of cells correctly assigned to each cell type (cluster)}
 \usage{
 fractionCorrectByType(genes, mapDat, medianDat, clustersF,
-  verbose = FALSE, plot = TRUE, return = TRUE, ...)
+  verbose = FALSE, plot = TRUE, return = TRUE,
+  main = "Mapping performance for each cell type", axisBreak = FALSE,
+  order = FALSE, ...)
 }
 \arguments{
 \item{genes}{a list of input genes}
@@ -21,6 +23,9 @@ fractionCorrectByType(genes, mapDat, medianDat, clustersF,
 \item{plot}{if TRUE, plotCorrectByType is run}
 
 \item{return}{if TRUE, the value is returned}
+
+\item{order}{can be set to a vector of axis labels, 
+if cell types should be plotted in a specific order}
 
 \item{...}{parameters passed to plotCorrectPerType (if plot=TRUE)}
 }

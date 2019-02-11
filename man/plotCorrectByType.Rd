@@ -4,16 +4,21 @@
 \alias{plotCorrectByType}
 \title{Plot fraction correct for each cell type}
 \usage{
-plotCorrectByType(res, types = colnames(res), xlab = "Cell type",
-  main = "Mapping performance for each cell type",
-  ylab = "Percent of cells correctly mapping", ...)
+plotCorrectByType(res, types = colnames(res),
+  main = "Mapping performance for each cell type", axisBreak = FALSE,
+  ...)
 }
 \arguments{
+\item{res}{a matrix with true and false positive mapping rates obtained from fractionCorrectByType}
+
 \item{types}{cell types, default is names(frac)}
 
-\item{...}{additional parameters for plot.}
+\item{main}{plot title, default is 'Mapping performance for each cell type'}
 
-\item{frac}{a numeric vector indicating the fraction of cells correctly mapped for each cell type}
+\item{axisBreak}{optionally the y axis can be broken to display one outlier bar, 
+without too much white space in the plot, default is FALSE}
+
+\item{...}{additional parameters for plot.}
 }
 \description{
 This function is a wrapper for plot designed for plotting the fraction correctly mapped for each

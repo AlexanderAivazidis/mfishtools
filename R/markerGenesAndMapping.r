@@ -1648,6 +1648,8 @@ fractionCorrectWithGenes <- function(orderedGenes,
 #' @param clustersF cluster calls for each cell
 #' @param verbose whether or not to show progress in the function
 #' @param plot if TRUE, plotCorrectByType is run
+#' @param order can be set to a vector of axis labels, 
+#' if cell types should be plotted in a specific order
 #' @param ... parameters passed to plotCorrectPerType (if plot=TRUE)
 #' @param return if TRUE, the value is returned
 #'
@@ -1662,6 +1664,9 @@ fractionCorrectByType <- function(genes,
                                      verbose = FALSE,
                                      plot = TRUE,
                                      return = TRUE,
+                                     main = "Mapping performance for each cell type",
+                                     axisBreak = FALSE,
+                                     order = FALSE,
                                      ...) {
   corMapTmp <- suppressWarnings(corTreeMapping(
     mapDat = mapDat,
@@ -1687,9 +1692,12 @@ fractionCorrectByType <- function(genes,
   
   total = unlist(lapply(unique(clustersF), function(x) sum(clustersF == x)))
   res = rbind(fracTrue, fracFalse, totalTrue, totalFalse, total)
-  
+  suppressWarnings(
+  if (order != FALSE){
+    res = res[,order]
+  })
   if (plot) {
-    plotCorrectByType(res, ...)
+    plotCorrectByType(res, main = main, axisBreak = axisBreak)
   }
   if (return) {
     return(res)
@@ -1701,24 +1709,77 @@ fractionCorrectByType <- function(genes,
 #' This function is a wrapper for plot designed for plotting the fraction correctly mapped for each
 #' cell type
 #'
-#' @param frac a numeric vector indicating the fraction of cells correctly mapped for each cell type
+#' @param res a matrix with true and false positive mapping rates obtained from fractionCorrectByType
 #' @param types cell types, default is names(frac)
+#' @param main plot title, default is 'Mapping performance for each cell type'
+#' @param axisBreak optionally the y axis can be broken to display one outlier bar, 
+#' without too much white space in the plot, default is FALSE
 #' @param ... additional parameters for plot.
 #'
 #' @export
 #' 
 plotCorrectByType <- function(res,
                                  types = colnames(res),
-                                 xlab = "Cell type",
                                  main = "Mapping performance for each cell type",
-                                 ylab = "Percent of cells correctly mapping",
+                                 axisBreak = FALSE,
                                  ...) {
-  par(xpd = FALSE)
-  barplot(res[c(4,3,5),], col= c('red', 'green',' grey'), border="white", font.axis=2, beside=T,
-          las = 2, xlab="", ylab = "Number of cells", font.lab=2, names.arg = types, main = main, ...)
-  par(xpd=TRUE)
-  legend(1,max(res[c(4,3,5),2:dim(res)[2]]), yjust = 0, c("False Positives", "True Positives", "Number of Cells"), bty = 'n', fill = c('red', 'green', 'grey'),
-         horiz = TRUE, text.font = 2, text.width = 4, x.intersp = 0.25)
+  
+  if (!axisBreak){
+    par(xpd = FALSE)
+    barplot(res[c(4,3,5),], col= c('red', 'green',' grey'), border="white", font.axis=2, beside=T,
+            las = 2, xlab="", ylab = "Number of cells", font.lab=2, names.arg = types, main = main, ...)
+    par(xpd=TRUE)
+    legend(1,max(res[c(4,3,5),2:dim(res)[2]]), yjust = 0, c("False Positives", "True Positives", "Number of Cells"), bty = 'n', fill = c('red', 'green', 'grey'),
+           horiz = TRUE, text.font = 2, text.width = 10, x.intersp = 0.25)
+  }else{
+    barplot_withAxisBreak = function(data, lower, upper, xlab="", main = "Mapping performance for each cell type",
+                                     ylab="Number Of Cells", labels = colnames(data),...){
+      cnvrt.coords <-function(x,y=NULL){
+        xy <- xy.coords(x,y, recycle=TRUE)
+        cusr <- par('usr')
+        cplt <- par('plt')  
+        plt <- list()
+        plt$x <- (xy$x-cusr[1])/(cusr[2]-cusr[1])
+        plt$y <- (xy$y-cusr[3])/(cusr[4]-cusr[3])
+        fig <- list()
+        fig$x <- plt$x*(cplt[2]-cplt[1])+cplt[1]
+        fig$y <- plt$y*(cplt[4]-cplt[3])+cplt[3]
+        return( list(fig=fig) )
+      }
+      
+      subplot <- function(fun, x, y=NULL){
+        old.par <- par(no.readonly=TRUE)
+        on.exit(par(old.par))
+        xy <- xy.coords(x,y)
+        xy <- cnvrt.coords(xy)$fig
+        par(plt=c(xy$x,xy$y), new=TRUE)
+        fun
+        tmp.par <- par(no.readonly=TRUE)
+        return(invisible(tmp.par))
+      }
+      
+      y_outer=21
+      lowspan=c(0,11)
+      topspan=c(lowspan[2]+1,21)
+      
+      plot(c(0,1),c(0,y_outer),type='n',axes=FALSE,ylab=ylab,xlab=xlab,lwd=7, main = main)
+      subplot({
+        y <- as.matrix(data)
+        bp <- barplot(y,col= c('red', 'green',' grey'),ylim=lower,xpd=FALSE,las=3,...)
+      },x=c(0,1),y=lowspan)
+      subplot({
+        bp <- barplot(y, col= c('red', 'green',' grey'), ylim=upper, xpd=FALSE,
+                      names.arg=vector(mode="character",length=length(data)),...)
+        legend('bottom', yjust = 0, c("False Positives", "True Positives", "Number of Cells"), bty = 'n', fill = c('red', 'green', 'grey'),
+               horiz = TRUE, text.font = 2, text.width = 10, x.intersp = 0.25)
+      }, x=c(0,1), y=topspan)
+    }
+    sorted = sort(res[c(4,3,5),], decreasing = T)
+    gaps = unlist(lapply(2:length(sorted), function(x) sorted[x-1] - sorted[x]))
+    lower = c(0,sorted[which.max(gaps)+1] + 10)
+    upper = c(sorted[which.max(gaps)]-10,sorted[1])
+    barplot_withAxisBreak(res[c(4,3,5),],lower,upper, beside = T, main = main)
+  }
 }
 
 #' Correct mapping at different tree heights
