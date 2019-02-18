@@ -1631,8 +1631,9 @@ fractionCorrectWithGenes <- function(orderedGenes,
       clustersF_merged = clustersF
       clustersF_merged[clustersF %in% clustersToMerge] = 'Other'
       frac[i] = 100 * mean(topLeafTmp[,1] == clustersF_merged)
+    }else{
+      frac[i] <- 100 * mean(topLeafTmp[, 1] == clustersF) 
     }
-    frac[i] <- 100 * mean(topLeafTmp[, 1] == clustersF)
   }
   frac[is.na(frac)] <- 0
   if (plot) {
