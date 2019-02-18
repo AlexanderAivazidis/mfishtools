@@ -1614,6 +1614,7 @@ fractionCorrectWithGenes <- function(orderedGenes,
                                      verbose = FALSE,
                                      plot = TRUE,
                                      return = TRUE,
+                                     clustersToMerge = NULL,
                                      ...) {
   numGn <- 2:length(orderedGenes)
   frac <- rep(0, length(orderedGenes))
@@ -1625,6 +1626,12 @@ fractionCorrectWithGenes <- function(orderedGenes,
     ))
     corMapTmp[is.na(corMapTmp)] <- 0
     topLeafTmp <- getTopMatch(corMapTmp)
+    if (!is.null(clustersToMerge)){
+      topLeafTmp[topLeafTmp[,1] %in% clustersToMerge,1] = 'Other'
+      clustersF_merged = clustersF
+      clustersF_merged[clustersF %in% clustersToMerge] = 'Other'
+      frac[i] = 100 * mean(topLeafTmp[,1] == clustersF_merged)
+    }
     frac[i] <- 100 * mean(topLeafTmp[, 1] == clustersF)
   }
   frac[is.na(frac)] <- 0
@@ -1730,7 +1737,7 @@ plotCorrectByType <- function(res,
             las = 2, xlab="", ylab = "Number of cells", font.lab=2, names.arg = types, main = main, ...)
     par(xpd=TRUE)
     legend(1,max(res[c(4,3,5),2:dim(res)[2]]), yjust = 0, c("False Positives", "True Positives", "Number of Cells"), bty = 'n', fill = c('red', 'green', 'grey'),
-           horiz = TRUE, text.font = 2, text.width = 10, x.intersp = 0.25)
+           horiz = TRUE, text.font = 2, x.intersp = 0.25)
   }else{
     barplot_withAxisBreak = function(data, lower, upper, xlab="", main = "Mapping performance for each cell type",
                                      ylab="Number Of Cells", labels = colnames(data),...){

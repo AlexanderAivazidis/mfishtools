@@ -5,7 +5,8 @@
 \title{Fraction of cells correctly assigned}
 \usage{
 fractionCorrectWithGenes(orderedGenes, mapDat, medianDat, clustersF,
-  verbose = FALSE, plot = TRUE, return = TRUE, ...)
+  verbose = FALSE, plot = TRUE, return = TRUE,
+  clustersToMerge = NULL, ...)
 }
 \arguments{
 \item{orderedGenes}{an ordered list of input genes (e.g. from an iterative algorithm)}
