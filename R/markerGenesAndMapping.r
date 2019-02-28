@@ -424,10 +424,11 @@ buildMappingBasedMarkerPanel <- function(mapDat,
     mapDat <- mapDat[kpGene, ]
     medianDat <- medianDat[kpGene, ]
   }
-
-  panelMin <- max(2, panelMin)
+  
+  min_panelMin = 0
+  panelMin <- max(min_panelMin, panelMin)
   if (length(currentPanel) < panelMin) {
-    panelMin <- max(2, panelMin - length(currentPanel))
+    panelMin <- max(min_panelMin, panelMin - length(currentPanel))
     currentPanel <- unique(c(currentPanel, names(sort(fcDiff))[1:panelMin]))
     if (writeText) {
       print(paste("Setting starting panel as:", paste(currentPanel, sep = ", ", collapse = ", ")))
