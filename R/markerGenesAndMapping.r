@@ -1591,6 +1591,48 @@ subsampleCells <- function(clusters,
 }
 
 
+#' Returns F-Score, Precision and Recall for cell classification
+#'
+#' This function takes as input an ordered set of marker genes (e.g., from at iterative
+#'   algorithm), and returns a vector showing the fraction of cells correctly mapped.
+#'
+#' @param orderedGenes an ordered list of input genes (e.g. from an iterative algorithm)
+#' #' @param mapDat normalized data of the mapping (=reference) data set.
+#' @param medianDat median value for each leaf
+#' @param realCluster real cluster assignements
+#' @param foundCluster cluster assignments from classification method
+#' @param focusGroup which group of clusters to calculate F-score, precision, recall for
+#'
+#' @return a list with the first entry showing the F-score as the function of the number of genes included and
+#'  the second and third entry showing precision and recall
+#'
+#' @export
+#' 
+FscoreWithGenes<- function(orderedGenes,
+                           mapDat,
+                           medianDat,
+                            realCluster,
+                            focusGroup) {
+  Fscore = rep(0,length(orderedGenes))
+  precision = rep(0,length(orderedGenes))
+  recall = rep(0,length(orderedGenes))
+  for (i in 2:length(orderedGenes)){
+    foundCluster <- suppressWarnings(getTopMatch(corTreeMapping(mapDat, 
+                                                                medianDat, genesToMap=orderedGenes[1:i])))
+    foundCluster = foundCluster[,1]
+    realCluster <- as.character(realCluster)
+    foundCluster <- as.character(foundCluster)
+    lev <- sort(unique(c(realCluster, foundCluster)))
+    realCluster <- factor(realCluster, levels = lev)
+    foundCluster <- factor(foundCluster, levels = lev)
+    confusion <- table(foundCluster, realCluster)
+    recall[i] = sum(unlist(lapply(focusGroup, function(x) confusion[x,x])))/sum(unlist(lapply(focusGroup, function(x) confusion[,x])))
+    precision[i] = sum(unlist(lapply(focusGroup, function(x) confusion[x,x])))/sum(unlist(lapply(focusGroup, function(x) confusion[x,])))
+    Fscore[i] = 2 * (precision[i] * recall[i])/(precision[i]+recall[i])
+  }
+  return(list(Fscore, precision, recall))
+}
+
 #' Fraction of cells correctly assigned
 #'
 #' This function takes as input an ordered set of marker genes (e.g., from at iterative
