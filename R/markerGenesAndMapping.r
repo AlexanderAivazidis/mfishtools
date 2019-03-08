@@ -1617,8 +1617,7 @@ FscoreWithGenes<- function(orderedGenes,
   precision = rep(0,length(orderedGenes))
   recall = rep(0,length(orderedGenes))
   for (i in 2:length(orderedGenes)){
-    foundCluster <- suppressWarnings(getTopMatch(corTreeMapping(mapDat, 
-                                                                medianDat, genesToMap=orderedGenes[1:i])))
+    foundCluster <- suppressWarnings(getTopMatch(corTreeMapping(mapDat, medianDat, genesToMap=orderedGenes[1:i])))
     foundCluster = foundCluster[,1]
     realCluster <- as.character(realCluster)
     foundCluster <- as.character(foundCluster)
@@ -1626,11 +1625,19 @@ FscoreWithGenes<- function(orderedGenes,
     realCluster <- factor(realCluster, levels = lev)
     foundCluster <- factor(foundCluster, levels = lev)
     confusion <- table(foundCluster, realCluster)
-    recall[i] = sum(unlist(lapply(focusGroup, function(x) confusion[x,x])))/sum(unlist(lapply(focusGroup, function(x) confusion[,x])))
-    precision[i] = sum(unlist(lapply(focusGroup, function(x) confusion[x,x])))/sum(unlist(lapply(focusGroup, function(x) confusion[x,])))
+    normalization = table(realCluster)[focusGroup]
+    normalization = normalization/sum(normalization)
+    recall[i] = sum((diag(confusion)/colSums(confusion))[focusGroup]*normalization)
+    tempPrec = (diag(confusion)/rowSums(confusion))[focusGroup]
+    tempNorm = normalization[!is.nan(tempPrec)]
+    tempNorm = tempNorm/sum(tempNorm)
+    tempPrec = tempPrec[!is.nan(tempPrec)]
+    precision[i] = sum(tempPrec*tempNorm)
     Fscore[i] = 2 * (precision[i] * recall[i])/(precision[i]+recall[i])
   }
-  return(list(Fscore, precision, recall))
+  res = list(Fscore, precision, recall)
+  names(res) = c('F-Score', 'Precision', 'Recall')
+  return(res)
 }
 
 #' Fraction of cells correctly assigned
