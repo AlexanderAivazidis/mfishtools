@@ -477,7 +477,7 @@ buildMappingBasedMarkerPanel <- function(mapDat,
         foundCluster <- suppressWarnings(getTopMatch(corTreeMapping(mapDat, medianDat, genesToMap=ggnn)))
         foundCluster = foundCluster[,1]
         realCluster <- as.character(clustersF)
-        if (sum(foundCluster == 'none') > 0){
+        if (sum(foundCluster == 'none', na.rm = TRUE) > 0){
           foundCluster[foundCluster == 'none'] = sample(realCluster, sum(foundCluster == 'none'), replace = TRUE) 
         }
         foundCluster <- as.character(foundCluster)
