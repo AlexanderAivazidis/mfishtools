@@ -361,6 +361,7 @@ buildMappingBasedMarkerPanel <- function(mapDat,
                                          maxFcGene = 1000,
                                          qMin = 0.75,
                                          seed = 10,
+                                         focusGroup = NA,
                                          currentPanel = NULL,
                                          panelMin = 5,
                                          writeText = TRUE,
@@ -405,7 +406,7 @@ buildMappingBasedMarkerPanel <- function(mapDat,
       if (!is.null(rownames(clusterDistance))) {
         clusterDistance <- clusterDistance[colnames(medianDat), colnames(medianDat)]
       }
-      clusterDistance <- as.vector(clusterDistance)
+      #clusterDistance <- as.vector(clusterDistance)
     }
   }
 
@@ -473,11 +474,33 @@ buildMappingBasedMarkerPanel <- function(mapDat,
       if (is.null(clusterDistance)) {
         matchCount[i] <- mean(clustersF == topLeafTmp[, 1])
       } else {
-        tmpVal <- dim(medianDat)[2] * (match(topLeafTmp[, 1], colnames(medianDat)) - 1) + clustIndex # NEED TO CHECK THIS!!!!!!!
-        matchCount[i] <- -mean(clusterDistance[tmpVal])
+        foundCluster <- suppressWarnings(getTopMatch(corTreeMapping(mapDat, medianDat, genesToMap=ggnn)))
+        foundCluster = foundCluster[,1]
+        realCluster <- as.character(clustersF)
+        foundCluster[foundCluster == 'none'] = sample(realCluster, sum(foundCluster == 'none'), replace = TRUE)
+        foundCluster <- as.character(foundCluster)
+        lev <- sort(unique(c(realCluster, foundCluster)))
+        realCluster <- factor(realCluster, levels = lev)
+        foundCluster <- factor(foundCluster, levels = lev)
+        confusion <- table(foundCluster, realCluster)
+        confusion = confusion[rownames(clusterDistance), colnames(clusterDistance)]
+        if (optimize == 'negative F-Score'){
+          normalization = table(realCluster)[focusGroup]
+          normalization = normalization/sum(normalization)
+          tempRecall = (diag(confusion)/colSums(confusion))[focusGroup]
+          tempPrecis = (diag(confusion)/rowSums(confusion))[focusGroup]
+          tempF = 2*(tempPrecis*tempRecall/(tempPrecis+tempRecall))
+          tempF[is.na(tempF)] = 0
+          matchCount[i] = sum(tempF*normalization)
+        }else{
+          matchCount[i] = -sum(confusion*clusterDistance)
+        }
+        #tmpVal <- dim(medianDat)[2] * (match(topLeafTmp[, 1], colnames(medianDat)) - 1) + clustIndex # NEED TO CHECK THIS!!!!!!!
+        #matchCount[i] <- -mean(clusterDistance[tmpVal])
       }
     }
     wm <- which.max(matchCount)
+    print('using confusion matrix')
     addGene <- as.character(otherGenes)[wm]
     if (writeText) {
       if (optimize == "FractionCorrect") {
@@ -487,7 +510,7 @@ buildMappingBasedMarkerPanel <- function(mapDat,
         ))
       } else {
         print(paste(
-          "Added", addGene, "with average cluster distance",
+          "Added", addGene, "with total cluster distance",
           -signif(matchCount[wm], 3), "[", length(currentPanel), "]."
         ))
       }
@@ -495,7 +518,7 @@ buildMappingBasedMarkerPanel <- function(mapDat,
     currentPanel <- c(currentPanel, addGene)
     currentPanel <- buildMappingBasedMarkerPanel(
       mapDat = mapDat, medianDat = medianDat, clustersF = clustersF,
-      panelSize = panelSize, subSamp = subSamp, maxFcGene = maxFcGene,
+      panelSize = panelSize, subSamp = subSamp, maxFcGene = maxFcGene, focusGroup = focusGroup,
       qMin = qMin, seed = seed, currentPanel = currentPanel, panelMin = panelMin,
       writeText = writeText, corMapping = corMapping, optimize = optimize,
       clusterDistance = clusterDistance, clusterGenes = clusterGenes, dend = dend,
@@ -1614,6 +1637,7 @@ FscoreWithGenes<- function(orderedGenes,
                             realCluster,
                             focusGroup) {
   Fscore = rep(0,length(orderedGenes))
+  Fscore2 = rep(0,length(orderedGenes))
   precision = rep(0,length(orderedGenes))
   recall = rep(0,length(orderedGenes))
   for (i in 2:length(orderedGenes)){
@@ -1627,13 +1651,20 @@ FscoreWithGenes<- function(orderedGenes,
     confusion <- table(foundCluster, realCluster)
     normalization = table(realCluster)[focusGroup]
     normalization = normalization/sum(normalization)
-    recall[i] = sum((diag(confusion)/colSums(confusion))[focusGroup]*normalization)
-    tempPrec = (diag(confusion)/rowSums(confusion))[focusGroup]
-    tempNorm = normalization[!is.nan(tempPrec)]
-    tempNorm = tempNorm/sum(tempNorm)
-    tempPrec = tempPrec[!is.nan(tempPrec)]
-    precision[i] = sum(tempPrec*tempNorm)
-    Fscore[i] = 2 * (precision[i] * recall[i])/(precision[i]+recall[i])
+    tempRecall = (diag(confusion)/colSums(confusion))[focusGroup]
+    tempPrecis = (diag(confusion)/rowSums(confusion))[focusGroup]
+    recall[i] = sum(tempRecall*normalization)
+    newNorm = normalization[!is.na(tempPrecis)]
+    newNorm = newNorm/sum(newNorm)
+    precision[i] = sum(tempPrecis[!is.na(tempPrecis)]*newNorm)
+    tempF = 2*(tempPrecis*tempRecall/(tempPrecis+tempRecall))
+    tempF[is.na(tempF)] = 0
+    # tempPrec = (diag(confusion)/rowSums(confusion))[focusGroup]
+    # tempNorm = normalization[!is.nan(tempPrec)]
+    # tempNorm = tempNorm/sum(tempNorm)
+    # tempPrec = tempPrec[!is.nan(tempPrec)]
+    # precision[i] = sum(tempPrec*tempNorm)
+    Fscore[i] = sum(tempF*normalization)
   }
   res = list(Fscore, precision, recall)
   names(res) = c('F-Score', 'Precision', 'Recall')
