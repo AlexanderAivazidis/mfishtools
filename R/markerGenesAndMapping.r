@@ -489,6 +489,7 @@ buildMappingBasedMarkerPanel <- function(mapDat,
         confusion = confusion[rownames(clusterDistance), colnames(clusterDistance)]
         if (optimize == 'negative F-Score'){
           normalization = table(realCluster)
+          normalization[normalization > subSamp] = subSamp
           normalization = normalization[names(normalization) %in% focusGroup]
           normalization = normalization/sum(normalization)
           tempRecall = (diag(confusion)/colSums(confusion))[focusGroup]
