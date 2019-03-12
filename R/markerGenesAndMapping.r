@@ -462,6 +462,7 @@ buildMappingBasedMarkerPanel <- function(mapDat,
     matchCount <- rep(0, length(otherGenes))
     clustIndex <- match(clustersF, colnames(medianDat))
     for (i in 1:length(otherGenes)) {
+      print(i)
       ggnn <- c(currentPanel, otherGenes[i])
       if (corMapping) {
         corMapTmp <- corTreeMapping(mapDat = mapDat, medianDat = medianDat, genesToMap = ggnn)
@@ -477,18 +478,19 @@ buildMappingBasedMarkerPanel <- function(mapDat,
         foundCluster <- suppressWarnings(getTopMatch(corTreeMapping(mapDat, medianDat, genesToMap=ggnn)))
         foundCluster = foundCluster[,1]
         realCluster <- as.character(clustersF)
+        foundCluster <- as.character(foundCluster)
         foundCluster[is.na(foundCluster)] = 'none'
         if (sum(foundCluster == 'none', na.rm = TRUE) > 0){
           foundCluster[foundCluster == 'none'] = sample(realCluster, sum(foundCluster == 'none'), replace = TRUE) 
         }
-        foundCluster <- as.character(foundCluster)
         lev <- sort(unique(c(realCluster, foundCluster)))
         realCluster <- factor(realCluster, levels = lev)
         foundCluster <- factor(foundCluster, levels = lev)
         confusion <- table(foundCluster, realCluster)
         confusion = confusion[rownames(clusterDistance), colnames(clusterDistance)]
         if (optimize == 'negative F-Score'){
-          normalization = table(realCluster)[focusGroup]
+          normalization = table(realCluster)
+          normalization = normalization[names(normalization) %in% focusGroup]
           normalization = normalization/sum(normalization)
           tempRecall = (diag(confusion)/colSums(confusion))[focusGroup]
           tempPrecis = (diag(confusion)/rowSums(confusion))[focusGroup]
