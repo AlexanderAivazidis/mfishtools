@@ -4,7 +4,8 @@
 \alias{FscoreWithGenes}
 \title{Returns F-Score, Precision and Recall for cell classification}
 \usage{
-FscoreWithGenes(orderedGenes, mapDat, medianDat, realCluster, focusGroup)
+FscoreWithGenes(orderedGenes, mapDat, medianDat, realCluster, focusGroup,
+  subSamp = 50)
 }
 \arguments{
 \item{orderedGenes}{an ordered list of input genes (e.g. from an iterative algorithm)

@@ -1640,7 +1640,7 @@ FscoreWithGenes<- function(orderedGenes,
                            mapDat,
                            medianDat,
                             realCluster,
-                            focusGroup) {
+                            focusGroup, subSamp = 50) {
   Fscore = rep(0,length(orderedGenes))
   Fscore2 = rep(0,length(orderedGenes))
   precision = rep(0,length(orderedGenes))
@@ -1654,7 +1654,9 @@ FscoreWithGenes<- function(orderedGenes,
     realCluster <- factor(realCluster, levels = lev)
     foundCluster <- factor(foundCluster, levels = lev)
     confusion <- table(foundCluster, realCluster)
-    normalization = table(realCluster)[focusGroup]
+    normalization = table(realCluster)
+    normalization[normalization > subSamp] = subSamp
+    normalizat = normalization[focusGroup]
     normalization = normalization/sum(normalization)
     tempRecall = (diag(confusion)/colSums(confusion))[focusGroup]
     tempPrecis = (diag(confusion)/rowSums(confusion))[focusGroup]
