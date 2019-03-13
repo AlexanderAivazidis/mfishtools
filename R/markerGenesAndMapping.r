@@ -496,6 +496,7 @@ buildMappingBasedMarkerPanel <- function(mapDat,
           tempPrecis = (diag(confusion)/rowSums(confusion))[focusGroup]
           tempF = 2*(tempPrecis*tempRecall/(tempPrecis+tempRecall))
           tempF[is.na(tempF)] = 0
+          tempF = tempF[names(normalization)]
           matchCount[i] = sum(tempF*normalization)
         }else{
           matchCount[i] = -sum(confusion*clusterDistance)
@@ -1682,29 +1683,32 @@ FscoreWithGenes2<- function(orderedGenes,
                             mapDat,
                             medianDat,
                             realCluster,
-                            focusGroup) {
+                            focusGroup,
+                            subSamp = 50) {
   Fscore = rep(0,length(orderedGenes))
   precision = rep(0,length(orderedGenes))
   recall = rep(0,length(orderedGenes))
   for (i in 2:length(orderedGenes)){
+    print(i)
     foundCluster <- suppressWarnings(getTopMatch(corTreeMapping(mapDat, medianDat, genesToMap=orderedGenes[1:i])))
     foundCluster = foundCluster[,1]
     foundCluster <- as.character(foundCluster)
     foundCluster[is.na(foundCluster)] = 'none'
     if (sum(foundCluster == 'none', na.rm = TRUE) > 0){
-      foundCluster[foundCluster == 'none'] = sample(realCluster, sum(foundCluster == 'none'), replace = TRUE) 
+      foundCluster[foundCluster == 'none'] = sample(as.character(realCluster), sum(foundCluster == 'none'), replace = TRUE) 
     }
     lev <- sort(unique(c(realCluster, foundCluster)))
     realCluster <- factor(realCluster, levels = lev)
     foundCluster <- factor(foundCluster, levels = lev)
     confusion <- table(foundCluster, realCluster)
-    normalization = table(realCluster)
-    normalization = normalization[names(normalization) %in% focusGroup]
-    normalization = normalization/sum(normalization)
-    tempRecall = (diag(confusion)/colSums(confusion))[rownames(confusion) %in% focusGroup]
-    tempPrecis = (diag(confusion)/rowSums(confusion))[rownames(confusion) %in% focusGroup]
-    tempF = 2*(tempPrecis*tempRecall/(tempPrecis+tempRecall))
-    tempF[is.na(tempF)] = 0
+      normalization = table(realCluster)
+      normalization[normalization > subSamp] = subSamp
+      normalization = normalization[names(normalization) %in% focusGroup]
+      normalization = normalization/sum(normalization)
+      tempRecall = (diag(confusion)/colSums(confusion))[rownames(confusion) %in% focusGroup]
+      tempPrecis = (diag(confusion)/rowSums(confusion))[rownames(confusion) %in% focusGroup]
+      tempF = 2*(tempPrecis*tempRecall/(tempPrecis+tempRecall))
+      tempF[is.na(tempF)] = 0
     Fscore[i] = sum(tempF*normalization)
   }
   res = list(Fscore, precision, recall)
