@@ -1656,7 +1656,7 @@ FscoreWithGenes<- function(orderedGenes,
     confusion <- table(foundCluster, realCluster)
     normalization = table(realCluster)
     normalization[normalization > subSamp] = subSamp
-    normalizat = normalization[focusGroup]
+    normalization = normalization[focusGroup]
     normalization = normalization/sum(normalization)
     tempRecall = (diag(confusion)/colSums(confusion))[focusGroup]
     tempPrecis = (diag(confusion)/rowSums(confusion))[focusGroup]
