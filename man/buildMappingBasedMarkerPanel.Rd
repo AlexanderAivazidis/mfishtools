@@ -6,8 +6,8 @@
 \usage{
 buildMappingBasedMarkerPanel(mapDat, medianDat = NA, clustersF = NA,
   panelSize = 50, subSamp = 20, maxFcGene = 1000, qMin = 0.75,
-  seed = 10, focusGroup = NA, currentPanel = NULL, panelMin = 5,
-  writeText = TRUE, corMapping = TRUE, optimize = "FractionCorrect",
+  seed = 10, currentPanel = NULL, panelMin = 5, writeText = TRUE,
+  corMapping = TRUE, optimize = "FractionCorrect",
   clusterDistance = NULL, clusterGenes = NULL, dend = NULL,
   percentSubset = 100)
 }

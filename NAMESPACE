@@ -2,6 +2,7 @@
 
 export(FscoreWithGenes)
 export(buildMappingBasedMarkerPanel)
+export(buildMappingBasedMarkerPanel2)
 export(buildPanel_oneCluster)
 export(buildQualityTable)
 export(buildTreeFromGenePanel)

@@ -312,7 +312,6 @@ leafToNodeMedians <- function(dend,
   medianNode
 }
 
-
 #' Greedy algorithm for building marker gene panel
 #'
 #' This is the primary function that iteratively builds a marker gene panel, one gene at a
@@ -354,6 +353,197 @@ leafToNodeMedians <- function(dend,
 #'
 #' @export
 buildMappingBasedMarkerPanel <- function(mapDat,
+                                         medianDat = NA,
+                                         clustersF = NA,
+                                         panelSize = 50,
+                                         subSamp = 20,
+                                         maxFcGene = 1000,
+                                         qMin = 0.75,
+                                         seed = 10,
+                                         currentPanel = NULL,
+                                         panelMin = 5,
+                                         writeText = TRUE,
+                                         corMapping = TRUE,
+                                         optimize = "FractionCorrect",
+                                         clusterDistance = NULL,
+                                         clusterGenes = NULL,
+                                         dend = NULL,
+                                         percentSubset = 100) {
+  
+  # Return an error if optimize='DendrogramHeight'
+  # and a dendrogram is not provided
+  if ((optimize == "DendrogramHeight") & is.null(dend)) {
+    return("Error: dendrogram not provided")
+  }
+  
+  # CALCULATE THE MEDIAN
+  if (is.na(medianDat[1])) {
+    names(clustersF) <- colnames(mapDat)
+    medianDat <- do.call("cbind", tapply(
+      names(clustersF), clustersF, function(x) rowMedians(mapDat[, x])
+    ))
+    rownames(medianDat) <- rownames(mapDat)
+  }
+  if (is.null(rownames(medianDat))) {
+    rownames(medianDat) <- rownames(mapDat)
+  }
+  
+  # Convert the dendrogram height into a correlation
+  # distance if dendrogram height is entered as the
+  # option
+  if (optimize == "FractionCorrect") {
+    clusterDistance <- NULL
+  }
+  if (optimize == "CorrelationDistance") {
+    if (is.null(clusterDistance)) {
+      corDist <- function(x) return(as.dist(1 - cor(x)))
+      clusterGenes <- intersect(clusterGenes, rownames(medianDat))
+      clusterDistance <- as.matrix(corDist(medianDat[clusterGenes, ]))
+    }
+    if (is.matrix(clusterDistance)) {
+      if (!is.null(rownames(clusterDistance))) {
+        clusterDistance <- clusterDistance[colnames(medianDat), colnames(medianDat)]
+      }
+      clusterDistance <- as.vector(clusterDistance)
+    }
+  }
+  
+  if (optimize == "DendrogramHeight") {
+    lcaTable <- makeLCAtable(dend)
+    clusterDistance <- 1 - getNodeHeight(dend)[lcaTable]
+    optimize <- "clusterDistance"
+  }
+  
+  # TAKE THE TOP DEX GENES Use fold change (rather
+  # than beta) because this function only receives
+  # median as input
+  fcDiff <- rank(apply(medianDat, 1, function(x) return(diff(quantile(x, c(1, qMin))))))
+  if (dim(medianDat)[1] > maxFcGene) {
+    kpGene <- names(fcDiff)[fcDiff <= maxFcGene]
+    mapDat <- mapDat[kpGene, ]
+    medianDat <- medianDat[kpGene, ]
+  }
+  
+  panelMin <- max(2, panelMin)
+  if (length(currentPanel) < panelMin) {
+    panelMin <- max(2, panelMin - length(currentPanel))
+    currentPanel <- unique(c(currentPanel, names(sort(fcDiff))[1:panelMin]))
+    if (writeText) {
+      print(paste("Setting starting panel as:", paste(currentPanel, sep = ", ", collapse = ", ")))
+    }
+  }
+  
+  # FIND THE NEXT GENE IN THE PANEL, IF THE DESIRED
+  # PANEL SIZE IS NOT REACHED
+  if (length(currentPanel) < panelSize) {
+    
+    # SUBSAMPLE
+    if (!is.na(subSamp)) {
+      kpSamp <- subsampleCells(clustersF, subSamp, seed)
+      mapDat <- mapDat[, kpSamp]
+      clustersF <- clustersF[kpSamp]
+      subSamp <- NA
+    }
+    
+    # CORRELATION MAPPING FOR EACH POSSIBLE ADDITION OF
+    # ONE GENE
+    otherGenes <- setdiff(rownames(mapDat), currentPanel)
+    if (percentSubset < 100) {
+      # Only look at a subset of genes if desired
+      set.seed(seed + length(currentPanel))
+      otherGenes <- otherGenes[sort(sample(
+        1:length(otherGenes),
+        ceiling(length(otherGenes) * percentSubset / 100)
+      ))]
+    }
+    matchCount <- rep(0, length(otherGenes))
+    clustIndex <- match(clustersF, colnames(medianDat))
+    for (i in 1:length(otherGenes)) {
+      ggnn <- c(currentPanel, otherGenes[i])
+      if (corMapping) {
+        corMapTmp <- corTreeMapping(mapDat = mapDat, medianDat = medianDat, genesToMap = ggnn)
+      }
+      if (!corMapping) {
+        corMapTmp <- distTreeMapping(mapDat = mapDat, medianDat = medianDat, genesToMap = ggnn)
+      }
+      corMapTmp[is.na(corMapTmp)] <- -1
+      topLeafTmp <- getTopMatch(corMapTmp)
+      if (is.null(clusterDistance)) {
+        matchCount[i] <- mean(clustersF == topLeafTmp[, 1])
+      } else {
+        tmpVal <- dim(medianDat)[2] * (match(topLeafTmp[, 1], colnames(medianDat)) - 1) + clustIndex # NEED TO CHECK THIS!!!!!!!
+        matchCount[i] <- -mean(clusterDistance[tmpVal])
+      }
+    }
+    wm <- which.max(matchCount)
+    addGene <- as.character(otherGenes)[wm]
+    if (writeText) {
+      if (optimize == "FractionCorrect") {
+        print(paste(
+          "Added", addGene, "with", signif(matchCount[wm], 3),
+          "now matching [", length(currentPanel), "]."
+        ))
+      } else {
+        print(paste(
+          "Added", addGene, "with average cluster distance",
+          -signif(matchCount[wm], 3), "[", length(currentPanel), "]."
+        ))
+      }
+    }
+    currentPanel <- c(currentPanel, addGene)
+    currentPanel <- buildMappingBasedMarkerPanel(
+      mapDat = mapDat, medianDat = medianDat, clustersF = clustersF,
+      panelSize = panelSize, subSamp = subSamp, maxFcGene = maxFcGene,
+      qMin = qMin, seed = seed, currentPanel = currentPanel, panelMin = panelMin,
+      writeText = writeText, corMapping = corMapping, optimize = optimize,
+      clusterDistance = clusterDistance, clusterGenes = clusterGenes, dend = dend,
+      percentSubset = percentSubset
+    )
+  }
+  currentPanel
+}
+
+#' Greedy algorithm for building marker gene panel
+#'
+#' This is the primary function that iteratively builds a marker gene panel, one gene at a
+#'   time by iteratively adding the most informative gene to the existing gene panel.
+#'
+#' @param mapDat normalized data of the mapping (=reference) data set.
+#' @param medianDat representative value for each leaf.  If not entered, it is calculated
+#' @param clustersF cluster calls for each cell.
+#' @param panelSize number of genes to include in the marker gene panel
+#' @param subSamp number of random nuclei to select from each cluster (to increase speed);
+#'   set as NA to not subsample
+#' @param maxFcGene maximum number of genes to consider at each iteration (to increase speed)
+#' @param qMin minimum quantile for fold change comparison (between 0 and 1, higher = more
+#'   specific marker genes are included)
+#' @param seed for reproducibility
+#' @param currentPanel starting panel.  Default is NULL.
+#' @param panelMin if there are fewer genes than this, the top number of these genes by fc
+#'   rank are set as the starting panel.  Cannot be less than 2.
+#' @param writeText should gene names and marker scores be output (default TRUE)
+#' @param corMapping if TRUE (default) map by correlation; otherwise, map by Euclidean
+#'   distance (not recommended)
+#' @param optimize if 'FractionCorrect' (default) will seek to maximize the fraction of
+#'   cells correctly mapping to final clusters
+#'   if 'CorrelationDistance' will seek to minimize the total distance between actual
+#'   cluster calls and mapped clusters
+#'   if 'DendrogramHeight' will seek to minimize the total dendrogram height between
+#'   actual cluster calls and mapped clusters
+#' @param clusterDistance only used if optimize='CorrelationDistance'; a matrix (or
+#'   vector) of cluster distances.  Will be calculated if NULL and if clusterGenes
+#'   provided. (NOTE: order must be the same as medianDat and/or have column and row
+#'   names corresponding to clusters in clustersF)
+#' @param clusterGenes a vector of genes used to calculate the cluster distance.
+#'   Only used if optimize='CorrelationDistance' and clusterDistance=NULL.
+#' @param dend only used if optimize='DendrogramHeight' dendrogram; will error out of not provided
+#' @param percentSubset for each iteration the function can subset the set of possible
+#'   genes to speed up the calculation.
+#'
+#' @return an ordered character vector corresponding to the marker gene panel
+#'
+#' @export
+buildMappingBasedMarkerPanel2 <- function(mapDat,
                                          medianDat = NA,
                                          clustersF = NA,
                                          panelSize = 50,
@@ -1702,7 +1892,7 @@ FscoreWithGenes2<- function(orderedGenes,
     foundCluster <- factor(foundCluster, levels = lev)
     confusion <- table(foundCluster, realCluster)
       normalization = table(realCluster)
-      normalization[normalization > subSamp] = subSamp
+      #normalization[normalization > subSamp] = subSamp
       normalization = normalization[names(normalization) %in% focusGroup]
       normalization = normalization/sum(normalization)
       tempRecall = (diag(confusion)/colSums(confusion))[rownames(confusion) %in% focusGroup]
